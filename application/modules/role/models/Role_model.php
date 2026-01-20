@@ -16,29 +16,44 @@ class Role_model extends CI_Model {
     }
 
     /**
-     * GENERATE AUTO ID
-     * Format: XX.YY (Prefix.Sequence)
+     * GENERATE AUTO ID (CERDAS)
+     * Mengecek Data Aktif DAN Data Sampah agar urutan tidak bentrok.
      */
-    public function generate_id($prefix = '01') {
-        // Cari ID terakhir berdasarkan prefix (misal 01.)
+    public function generate_id($prefix) {
+        // 1. Cari Angka Tertinggi di Data Aktif (Format: 01.XX)
         $this->db->select('role_id');
-        $this->db->like('role_id', $prefix . '.', 'after'); // Cari 01.%
+        $this->db->like('role_id', $prefix . '.', 'after'); 
+        $this->db->where('active_st', 1); // Hanya yg aktif
         $this->db->order_by('role_id', 'DESC');
         $this->db->limit(1);
-        $query = $this->db->get($this->table)->row();
+        $query_active = $this->db->get($this->table)->row();
 
-        if ($query) {
-            // Jika ada (misal 01.04), ambil ekornya (04) tambah 1
-            $last_id = $query->role_id;
-            $parts = explode('.', $last_id);
-            $number = intval(end($parts)) + 1;
-        } else {
-            // Jika belum ada, mulai dari 01
-            $number = 1;
+        $max_active = 0;
+        if ($query_active) {
+            $parts = explode('.', $query_active->role_id);
+            $max_active = intval(end($parts));
         }
 
-        // Format ulang jadi 2 digit (01.05)
-        return $prefix . '.' . str_pad($number, 2, '0', STR_PAD_LEFT);
+        // 2. Cari Angka Tertinggi di Tong Sampah (Format: 99.XX) 
+        // TAPI hanya yang asalnya dari tipe role ini (role_tp = $prefix)
+        $this->db->select('role_id');
+        $this->db->like('role_id', '99.', 'after'); 
+        $this->db->where('role_tp', $prefix); // Kuncinya disini: Cek role_tp
+        $this->db->order_by('role_id', 'DESC');
+        $this->db->limit(1);
+        $query_trash = $this->db->get($this->table)->row();
+
+        $max_trash = 0;
+        if ($query_trash) {
+            $parts = explode('.', $query_trash->role_id);
+            $max_trash = intval(end($parts));
+        }
+
+        // 3. Bandingkan mana yang lebih besar
+        $next_number = max($max_active, $max_trash) + 1;
+
+        // 4. Format ulang jadi 2 digit (01.06)
+        return $prefix . '.' . str_pad($next_number, 2, '0', STR_PAD_LEFT);
     }
 
     public function insert($data) {
@@ -102,5 +117,69 @@ class Role_model extends CI_Model {
         $this->db->trans_complete();
 
         return $this->db->trans_status(); // Return True jika sukses, False jika gagal
+    }
+
+    // Ambil data yang terhapus (untuk ditampilkan di tong sampah)
+    public function get_deleted() {
+        $this->db->where('deleted_st', 1);
+        $this->db->order_by('deleted_at', 'DESC');
+        return $this->db->get($this->table)->result();
+    }
+
+    // FUNGSI RESTORE (Mengembalikan Data)
+    public function restore($id) {
+        // 1. Ambil data role yang ada di tong sampah (misal 99.05)
+        $role = $this->db->get_where($this->table, ['role_id' => $id])->row();
+        
+        if (!$role) return ['status' => false, 'msg' => 'Data tidak ditemukan.'];
+
+        // 2. Susun Target ID Asli
+        // Ambil ekornya (05) dari 99.05
+        $parts = explode('.', $id);
+        $suffix = end($parts); 
+        
+        // Gabungkan dengan Tipe Role aslinya (misal 01.05)
+        $target_id = $role->role_tp . '.' . $suffix;
+
+        // 3. Cek Bentrok: Apakah ID 01.05 sudah dipakai orang lain saat role ini dihapus?
+        $check = $this->db->get_where($this->table, ['role_id' => $target_id])->row();
+        
+        $final_id = $target_id;
+        $note = '';
+
+        if ($check) {
+            // Jika ID lama sudah terpakai, kita Generate ID Baru (misal jadi 01.06)
+            $final_id = $this->generate_id($role->role_tp);
+            $note = " (ID lama bentrok, diganti baru ke $final_id)";
+        }
+
+        // 4. Mulai Transaksi Restore
+        $this->db->trans_start();
+
+        // A. Update Tabel Relasi (User & Permission) ke ID Final
+        $this->db->where('role_id', $id)->update('app_user', ['role_id' => $final_id]);
+        $this->db->where('role_id', $id)->update('app_permission', ['role_id' => $final_id]);
+
+        // B. Update Tabel Role (Pindah ID, Aktifkan Kembali)
+        $data = [
+            'role_id'    => $final_id,
+            'active_st'  => 1,          // Aktifkan lagi
+            'deleted_st' => 0,          // Hapus bendera delete
+            'deleted_by' => NULL,
+            'deleted_at' => NULL,
+            'updated_by' => $this->session->userdata('username'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        $this->db->where('role_id', $id);
+        $this->db->update($this->table, $data);
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status()) {
+            return ['status' => true, 'msg' => 'Role berhasil dipulihkan' . $note];
+        } else {
+            return ['status' => false, 'msg' => 'Gagal memulihkan database.'];
+        }
     }
 }

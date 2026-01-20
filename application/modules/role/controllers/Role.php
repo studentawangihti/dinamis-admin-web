@@ -7,9 +7,11 @@ class Role extends MY_Controller {
         $this->load->model('Role_model');
     }
 
-    public function index() {
+public function index() {
         $data['page_title'] = 'Management Role';
-        $data['roles'] = $this->Role_model->get_all();
+        $data['roles'] = $this->Role_model->get_all(); // Data Aktif
+        $data['deleted_roles'] = $this->Role_model->get_deleted(); // Data Sampah
+        
         $this->render('index', $data);
     }
 
@@ -73,6 +75,25 @@ class Role extends MY_Controller {
             $this->session->set_flashdata('error', 'Gagal menghapus! Kemungkinan ID Sampah (99.xx) untuk nomor ini sudah ada.');
         }
 
+        redirect('role');
+    }
+    
+    public function restore($id) {
+        $id = urldecode($id); // Decode 99.05
+
+        if (empty($id)) {
+            $this->session->set_flashdata('error', 'ID tidak valid.');
+            redirect('role');
+        }
+
+        $result = $this->Role_model->restore($id);
+
+        if ($result['status']) {
+            $this->session->set_flashdata('success', $result['msg']);
+        } else {
+            $this->session->set_flashdata('error', $result['msg']);
+        }
+        
         redirect('role');
     }
 }
