@@ -56,3 +56,15 @@ $route['translate_uri_dashes'] = FALSE;
 // Route khusus modul (opsional tapi rapi)
 $route['login'] = 'auth/index';
 $route['logout'] = 'auth/logout';
+
+$route['role'] = 'master/role';
+$route['role/(:any)'] = 'master/role/$1';
+
+$route['user'] = 'master/user';
+$route['user/(:any)'] = 'master/user/$1';
+
+$route['permission'] = 'master/permission';
+$route['permission/(:any)'] = 'master/permission/$1';
+
+$route['module'] = 'master/module';
+$route['module/(:any)'] = 'master/module/$1';
