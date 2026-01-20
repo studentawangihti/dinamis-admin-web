@@ -68,3 +68,10 @@ $route['permission/(:any)'] = 'master/permission/$1';
 
 $route['module'] = 'master/module';
 $route['module/(:any)'] = 'master/module/$1';
+
+// Tambahkan ini PALING ATAS di bagian Route Role
+$route['role/delete/(:any)'] = 'master/role/delete/$1';
+
+// Baru route umum di bawahnya
+$route['role'] = 'master/role';
+$route['role/(:any)'] = 'master/role/$1';

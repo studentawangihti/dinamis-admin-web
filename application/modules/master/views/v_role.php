@@ -14,31 +14,27 @@
 </div>
 
 <?php if($this->session->flashdata('success')): ?>
-    <div class="alert alert-success border-left-success alert-dismissible fade show" role="alert">
-        <?= $this->session->flashdata('success') ?>
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
+    <div class="alert alert-success border-left-success alert-dismissible fade show">
+        <i class="fas fa-check-circle"></i> <?= $this->session->flashdata('success') ?>
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
     </div>
 <?php elseif($this->session->flashdata('error')): ?>
-    <div class="alert alert-danger border-left-danger alert-dismissible fade show" role="alert">
-        <?= $this->session->flashdata('error') ?>
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
+    <div class="alert alert-danger border-left-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-triangle"></i> <?= $this->session->flashdata('error') ?>
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
     </div>
 <?php endif; ?>
 
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Daftar Role / Jabatan</h6>
+        <h6 class="m-0 font-weight-bold text-primary">Daftar Jabatan & Wewenang</h6>
     </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
                 <thead class="bg-light">
                     <tr>
-                        <th width="15%">ID Role</th>
+                        <th width="10%">ID</th>
                         <th>Nama Role</th>
                         <th>Kelompok</th>
                         <th class="text-center">Status</th>
@@ -47,20 +43,21 @@
                 </thead>
                 <tbody>
                     <?php if(empty($roles)): ?>
-                        <tr><td colspan="5" class="text-center">Tidak ada data aktif.</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted">Belum ada data role.</td></tr>
                     <?php else: ?>
                         <?php foreach($roles as $r): ?>
                         <tr>
                             <td><code><?= $r->role_id ?></code></td>
-                            <td><strong><?= $r->role_nm ?></strong></td>
+                            <td class="font-weight-bold text-dark"><?= $r->role_nm ?></td>
                             <td>
-                                <?php if($r->role_tp == '01'): ?>
-                                    <span class="badge badge-info">Internal (Pegawai)</span>
-                                <?php elseif($r->role_tp == '02'): ?>
-                                    <span class="badge badge-warning">Eksternal (Mitra)</span>
-                                <?php else: ?>
-                                    <span class="badge badge-secondary">Lainnya</span>
-                                <?php endif; ?>
+                                <?php 
+                                    $badges = [
+                                        '01' => '<span class="badge badge-info"><i class="fas fa-building"></i> Internal</span>',
+                                        '02' => '<span class="badge badge-warning"><i class="fas fa-handshake"></i> Eksternal</span>',
+                                        '03' => '<span class="badge badge-secondary">Lainnya</span>'
+                                    ];
+                                    echo isset($badges[$r->role_tp]) ? $badges[$r->role_tp] : $r->role_tp;
+                                ?>
                             </td>
                             <td class="text-center">
                                 <?php if($r->active_st == 1): ?>
@@ -71,7 +68,7 @@
                             </td>
                             <td class="text-center">
                                 <?php if($can_update): ?>
-                                    <button class="btn btn-warning btn-sm btn-circle" onclick='editRole(<?= json_encode($r) ?>)' title="Edit">
+                                    <button class="btn btn-warning btn-sm btn-circle" onclick='editRole(<?= json_encode($r) ?>)' title="Edit Data">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                 <?php endif; ?>
@@ -80,7 +77,7 @@
                                     <a href="<?= base_url('role/delete/'.$r->role_id) ?>" 
                                        class="btn btn-danger btn-sm btn-circle" 
                                        onclick="return confirm('Yakin ingin menghapus role <?= $r->role_nm ?>?')" 
-                                       title="Hapus">
+                                       title="Hapus ke Recycle Bin">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                 <?php endif; ?>
@@ -111,18 +108,18 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Nama Role <span class="text-danger">*</span></label>
-                        <input type="text" name="role_nm" id="role_nm" class="form-control" required placeholder="Contoh: Staff IT">
+                        <label>Nama Role / Jabatan <span class="text-danger">*</span></label>
+                        <input type="text" name="role_nm" id="role_nm" class="form-control" required placeholder="Contoh: Staff Gudang">
                     </div>
 
                     <div class="form-group">
                         <label>Kelompok Role <span class="text-danger">*</span></label>
                         <select name="role_tp" id="role_tp" class="form-control" required>
-                            <option value="01">01 - Internal (Pegawai)</option>
-                            <option value="02">02 - Eksternal (Mitra)</option>
+                            <option value="01">01 - Internal (Pegawai Tetap/Kontrak)</option>
+                            <option value="02">02 - Eksternal (Magang/Mitra)</option>
                             <option value="03">03 - Lainnya</option>
                         </select>
-                        <small class="text-primary mt-1 d-block text-auto-id">
+                        <small class="text-primary mt-2 d-block text-auto-id">
                             <i class="fas fa-info-circle"></i> ID akan digenerate otomatis: <b>01.XX</b>
                         </small>
                     </div>
@@ -156,21 +153,23 @@
                     <table class="table table-bordered table-striped" width="100%">
                         <thead>
                             <tr>
-                                <th>ID Sampah</th>
+                                <th>ID</th>
                                 <th>Nama Role</th>
                                 <th>Dihapus Oleh</th>
+                                <th>Waktu Hapus</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if(empty($deleted_roles)): ?>
-                                <tr><td colspan="4" class="text-center">Kosong.</td></tr>
+                                <tr><td colspan="5" class="text-center">Tong sampah kosong.</td></tr>
                             <?php else: ?>
                                 <?php foreach($deleted_roles as $dr): ?>
                                 <tr>
                                     <td><code><?= $dr->role_id ?></code></td>
                                     <td><?= $dr->role_nm ?></td>
                                     <td><?= $dr->deleted_by ?></td>
+                                    <td><small><?= $dr->deleted_at ?></small></td>
                                     <td class="text-center">
                                         <a href="<?= base_url('role/restore/'.$dr->role_id) ?>" 
                                            class="btn btn-success btn-sm"
@@ -198,13 +197,16 @@
         if(mode == 'add') {
             $('#modalTitle').text('Tambah Role Baru');
             $('#is_update').val('0');
+            
+            // Reset Form
             $('#role_nm').val('');
-            $('#role_tp').val('01').attr('disabled', false);
+            $('#role_tp').val('01').attr('disabled', false); // Enable dropdown
             $('#active_st').val('1');
             
+            // Tampilan Insert (Sembunyikan ID input, tampilkan info auto-id)
             $('#id_container').hide();
             $('.text-auto-id').show();
-            updateHelperText();
+            updateHelperText(); // Panggil fungsi update text
         }
         $('#roleModal').modal('show');
     }
@@ -212,17 +214,24 @@
     function editRole(data) {
         $('#modalTitle').text('Edit Role');
         $('#is_update').val('1');
+        
+        // Isi Form
         $('#role_id').val(data.role_id);
         $('#role_nm').val(data.role_nm);
         $('#role_tp').val(data.role_tp); 
         $('#active_st').val(data.active_st);
 
+        // Tampilan Edit (Tampilkan ID input, sembunyikan info auto-id)
         $('#id_container').show();
         $('.text-auto-id').hide();
+        
         $('#roleModal').modal('show');
     }
 
-    $('#role_tp').change(function(){ updateHelperText(); });
+    // Event Listener saat dropdown 'Kelompok Role' berubah
+    $('#role_tp').change(function(){
+        updateHelperText();
+    });
 
     function updateHelperText() {
         let val = $('#role_tp').val();
