@@ -75,3 +75,48 @@ $route['role/delete/(:any)'] = 'master/role/delete/$1';
 // Baru route umum di bawahnya
 $route['role'] = 'master/role';
 $route['role/(:any)'] = 'master/role/$1';
+
+/*
+|--------------------------------------------------------------------------
+| Route Module (Navigation) - Arahkan ke folder Master
+|--------------------------------------------------------------------------
+*/
+
+// 1. Route Khusus untuk Delete (Agar parameter ID terbaca jelas)
+$route['module/delete/(:any)'] = 'master/module/delete/$1';
+
+// 2. Route Khusus untuk Save
+$route['module/save'] = 'master/module/save';
+
+// 3. Route Umum (Index/Halaman Utama)
+$route['module'] = 'master/module';
+$route['module/(:any)'] = 'master/module/$1';
+
+/*
+|--------------------------------------------------------------------------
+| Route Module (Navigation) - Master
+|--------------------------------------------------------------------------
+*/
+// 1. Route Khusus Aksi (Delete, Restore, Hard Delete)
+$route['module/delete/(:any)']      = 'master/module/delete/$1';
+$route['module/restore/(:any)']     = 'master/module/restore/$1';      // <-- Tambahkan ini
+$route['module/hard_delete/(:any)'] = 'master/module/hard_delete/$1';  // <-- Tambahkan ini
+
+// 2. Route Save
+$route['module/save'] = 'master/module/save';
+
+// 3. Route Umum (Index & Halaman Lain)
+$route['module'] = 'master/module';
+$route['module/(:any)'] = 'master/module/$1';
+
+/*
+|--------------------------------------------------------------------------
+| Route Permission (Hak Akses)
+|--------------------------------------------------------------------------
+*/
+// 1. Route untuk AJAX Change (Harus paling atas agar spesifik)
+$route['permission/change'] = 'master/permission/change';
+
+// 2. Route Halaman Utama
+$route['permission'] = 'master/permission';
+$route['permission/(:any)'] = 'master/permission/$1';

@@ -4,38 +4,49 @@ class Permission extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
-        // Karena sekarang satu folder (master), panggil model langsung
         $this->load->model('Permission_model');
         $this->load->model('Role_model'); 
     }
 
     public function index() {
-        $data['page_title'] = 'Hak Akses';
+        $data['page_title'] = 'Manajemen Hak Akses';
         
-        // Ambil list role untuk filter
+        // 1. Ambil Semua Role untuk Dropdown
         $data['roles'] = $this->Role_model->get_all();
         
-        // Default ke Superadmin (01.01) jika tidak ada pilihan di URL
+        // 2. Tentukan Role mana yang sedang diedit (Default: Superadmin / 01.01)
         $data['selected_role'] = $this->input->get('role_id') ?: '01.01'; 
         
-        // Load Modules & Permissions
+        // 3. Ambil Semua Menu (Modules)
         $data['modules'] = $this->Permission_model->get_all_modules();
+        
+        // 4. Ambil Permission milik Role yang dipilih (Array Key = nav_id)
         $data['permissions'] = $this->Permission_model->get_access_list($data['selected_role']);
         
-        // Panggil View baru: v_permission
         $this->render('v_permission', $data);
     }
 
+    // Fungsi AJAX untuk Simpan Perubahan
     public function change() {
-        // Fungsi AJAX untuk update checkbox
-        $role_id = $this->input->post('role_id');
-        $nav_id  = $this->input->post('module_id');
-        $value   = $this->input->post('value'); // 1 = Give Access, 0 = Revoke
+        // Validasi Request
+        if (!$this->input->is_ajax_request()) {
+            show_404(); // Atau exit
+        }
 
-        $this->Permission_model->update_access($role_id, $nav_id, $value);
+        $role_id = $this->input->post('role_id');
+        $nav_id  = $this->input->post('nav_id');
+        $state   = $this->input->post('state'); 
+
+        // Proteksi Superadmin (PENTING)
+        if ($role_id == '01.01' && ($nav_id == '01' || $nav_id == '01.01') && $state == 0) {
+            echo json_encode(['status' => false, 'msg' => 'Akses Master untuk Superadmin tidak boleh dimatikan!']);
+            return;
+        }
+
+        // Panggil Model
+        $this->Permission_model->update_access($role_id, $nav_id, $state);
         
-        // Return JSON untuk AJAX
-        header('Content-Type: application/json');
-        echo json_encode(['status' => true]);
+        // Response JSON (Penting agar JS bisa baca status: true)
+        echo json_encode(['status' => true, 'msg' => 'Akses berhasil diubah.']);
     }
 }
